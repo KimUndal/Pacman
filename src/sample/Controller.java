@@ -36,7 +36,6 @@ public class Controller implements EventHandler<KeyEvent> {
     }
 
     public void initialize(){
-        String file = getLevelFile(0);
         this.pacmanModel = new PacmanModel();
         this.update(PacmanModel.Direction.NONE);
         ghostEatingMode = 25;
@@ -48,12 +47,7 @@ public class Controller implements EventHandler<KeyEvent> {
         TimerTask timerTask = new TimerTask() {
             @Override
             public void run() {
-                Platform.runLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        update(PacmanModel.getCurrentDirection());
-                    }
-                });
+                Platform.runLater(() -> update(PacmanModel.getCurrentDirection()));
             }
         };
         long frameTimeInMill = (long) (1000.0/FPS);
@@ -66,11 +60,11 @@ public class Controller implements EventHandler<KeyEvent> {
         this.scoreLabel.setText(String.format("Score: %d", this.pacmanModel.getScore()));
         this.levelLabel.setText(String.format("Level: %d", this.pacmanModel.getLevel()));
         if(PacmanModel.isGameOver()){
-            this.gameOverLabel.setText(String.format("GAME OVER"));
+            this.gameOverLabel.setText("GAME OVER");
             pause();
         }
         if(PacmanModel.isYouWon()){
-            this.gameOverLabel.setText(String.format("YOU WON"));
+            this.gameOverLabel.setText("YOU WON");
         }
         if(PacmanModel.isGhostEating()){
             ghostEatingMode--;
@@ -100,7 +94,7 @@ public class Controller implements EventHandler<KeyEvent> {
         else if(keyCode == KeyCode.G){
             pause();
             this.pacmanModel.startNewGame();
-            this.gameOverLabel.setText(String.format(""));
+            this.gameOverLabel.setText("");
             pause = false;
             this.startTimer();
         }else{

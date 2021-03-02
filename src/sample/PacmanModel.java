@@ -49,7 +49,9 @@ public class PacmanModel {
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
-        while (scanner.hasNextLine()) {
+        while (true) {
+            assert scanner != null;
+            if (!scanner.hasNextLine()) break;
             String line = scanner.nextLine();
             Scanner lineScanner = new Scanner(line);
             while (lineScanner.hasNext()) {
@@ -73,35 +75,41 @@ public class PacmanModel {
         int ghost1column = 0;
         int ghost2row = 0;
         int ghost2column = 0;
-        while (scanner2.hasNextLine()) {
+        while (true) {
+            assert scanner2 != null;
+            if (!scanner2.hasNextLine()) break;
             int column = 0;
             String line = scanner2.nextLine();
             Scanner lineScanner = new Scanner(line);
             while (lineScanner.hasNext()) {
                 String value = lineScanner.next();
                 CellValue thisValue;
-                if (value.equals("W")) {
-                    thisValue = CellValue.WALL;
-                } else if (value.equals("S")) {
-                    thisValue = CellValue.SMALLDOT;
-                    dotCount++;
-                } else if (value.equals("B")) {
-                    thisValue = CellValue.BIGDOT;
-                    dotCount++;
-                } else if (value.equals("1")) {
-                    thisValue = CellValue.GHOSTHOME1;
-                    ghost1row = row;
-                    ghost1column = column;
-                } else if (value.equals("2")) {
-                    thisValue = CellValue.GHOSTHOME2;
-                    ghost2row = row;
-                    ghost2column = column;
-                } else if (value.equals("P")) {
-                    thisValue = CellValue.PACKHOME;
-                    pacmanRow = row;
-                    pacmanColumn = column;
-                } else {
-                    thisValue = CellValue.EMPTY;
+                switch (value) {
+                    case "W" -> thisValue = CellValue.WALL;
+                    case "S" -> {
+                        thisValue = CellValue.SMALLDOT;
+                        dotCount++;
+                    }
+                    case "B" -> {
+                        thisValue = CellValue.BIGDOT;
+                        dotCount++;
+                    }
+                    case "1" -> {
+                        thisValue = CellValue.GHOSTHOME1;
+                        ghost1row = row;
+                        ghost1column = column;
+                    }
+                    case "2" -> {
+                        thisValue = CellValue.GHOSTHOME2;
+                        ghost2row = row;
+                        ghost2column = column;
+                    }
+                    case "P" -> {
+                        thisValue = CellValue.PACKHOME;
+                        pacmanRow = row;
+                        pacmanColumn = column;
+                    }
+                    default -> thisValue = CellValue.EMPTY;
                 }
                 grid[row][column] = thisValue;
                 column++;
@@ -120,9 +128,9 @@ public class PacmanModel {
 
 
     public void startNewGame() {
-        this.gameOver = false;
-        this.youWon = false;
-        this.ghostEating = false;
+        gameOver = false;
+        youWon = false;
+        ghostEating = false;
         dotCount = 0;
         columnCount = 0;
         rowCount = 0;
@@ -130,14 +138,30 @@ public class PacmanModel {
         this.level = 1;
         this.initializeLevel(Controller.getLevelFile(0));
     }
+    public void startNextLevel() {
+        if (this.isLevelComplete()) {
+            this.level++;
+            rowCount = 0;
+            columnCount = 0;
+            youWon = false;
+            ghostEating = false;
+            try {
+                this.initializeLevel(Controller.getLevelFile(level - 1));
+            } catch (ArrayIndexOutOfBoundsException e) {
+                youWon = true;
+                gameOver = true;
+                level--;
+            }
+        }
+    }
 
     public void moveGhosts() {
         Point2D[] ghostData1 = moveAGhost(ghost1Velocity, ghost1Location);
         Point2D[] ghostData2 = moveAGhost(ghost2Velocity, ghost2Location);
         ghost1Velocity = ghostData1[0];
-        ghost1Velocity = ghostData1[1];
+        ghost1Location = ghostData1[1];
         ghost2Velocity = ghostData2[0];
-        ghost2Velocity = ghostData2[1];
+        ghost2Location = ghostData2[1];
     }
 
     public Point2D[] moveAGhost(Point2D velocity, Point2D location) {
@@ -218,8 +242,7 @@ public class PacmanModel {
                 location = potentialLocation;
             }
         }
-        Point2D[] data = {velocity, location};
-        return data;
+        return new Point2D[]{velocity, location};
     }
 
     //sjekker om objektet går utafor brettet. Om sant vil objektet bli hentet inn igjen.
@@ -262,22 +285,7 @@ public class PacmanModel {
         }
     }
 
-    public void startNextLevel() {
-        if (this.isLevelComplete()) {
-            this.level++;
-            rowCount = 0;
-            columnCount = 0;
-            youWon = false;
-            ghostEating = false;
-            try {
-                this.initializeLevel(Controller.getLevelFile(level - 1));
-            } catch (ArrayIndexOutOfBoundsException e) {
-                youWon = true;
-                gameOver = true;
-                level--;
-            }
-        }
-    }
+
 
     public void sendGhostHome1() {
         for (int row = 0; row < this.rowCount; row++) {
