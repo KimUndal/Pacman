@@ -138,6 +138,7 @@ public class PacmanModel {
         this.level = 1;
         this.initializeLevel(Controller.getLevelFile(0));
     }
+
     public void startNextLevel() {
         if (this.isLevelComplete()) {
             this.level++;
@@ -166,6 +167,7 @@ public class PacmanModel {
 
     public Point2D[] moveAGhost(Point2D velocity, Point2D location) {
         Random generator = new Random();
+        Point2D potentialLocation;
         if (!ghostEating) {
             if (location.getY() == pacmanLocation.getY()) {
                 if (location.getX() > pacmanLocation.getX()) {
@@ -173,7 +175,7 @@ public class PacmanModel {
                 } else {
                     velocity = changeVelocity(Direction.DOWN);
                 }
-                Point2D potentialLocation = location.add(velocity);
+                potentialLocation = location.add(velocity);
                 potentialLocation = setGoingOffscreenNewLocation(potentialLocation);
                 while (grid[(int) potentialLocation.getX()][(int) potentialLocation.getY()] == CellValue.WALL) {
                     int randomNum = generator.nextInt(4);
@@ -188,8 +190,20 @@ public class PacmanModel {
                 } else {
                     velocity = changeVelocity(Direction.RIGHT);
                 }
-                Point2D potentialLocation = location.add(velocity);
+
+                potentialLocation = location.add(velocity);
                 potentialLocation = setGoingOffscreenNewLocation(potentialLocation);
+                while (grid[(int) potentialLocation.getX()][(int) potentialLocation.getY()] == CellValue.WALL) {
+                    int randomNum = generator.nextInt(4);
+                    Direction direction = intToDirection(randomNum);
+                    velocity = changeVelocity(direction);
+                    potentialLocation = location.add(velocity);
+                }
+                location = potentialLocation;
+            }
+            else{
+                 potentialLocation = location.add(velocity);
+                 potentialLocation = setGoingOffscreenNewLocation(potentialLocation);
                 while (grid[(int) potentialLocation.getX()][(int) potentialLocation.getY()] == CellValue.WALL) {
                     int randomNum = generator.nextInt(4);
                     Direction direction = intToDirection(randomNum);
@@ -206,7 +220,7 @@ public class PacmanModel {
                 } else {
                     velocity = changeVelocity(Direction.UP);
                 }
-                Point2D potentialLocation = location.add(velocity);
+                potentialLocation = location.add(velocity);
                 potentialLocation = setGoingOffscreenNewLocation(potentialLocation);
                 while (grid[(int) potentialLocation.getX()][(int) potentialLocation.getY()] == CellValue.WALL) {
                     int randomNum = generator.nextInt(4);
@@ -221,7 +235,7 @@ public class PacmanModel {
                 } else {
                     velocity = changeVelocity(Direction.LEFT);
                 }
-                Point2D potentialLocation = location.add(velocity);
+                potentialLocation = location.add(velocity);
                 potentialLocation = setGoingOffscreenNewLocation(potentialLocation);
                 while (grid[(int) potentialLocation.getX()][(int) potentialLocation.getY()] == CellValue.WALL) {
                     int randomNumb = generator.nextInt(4);
@@ -231,7 +245,7 @@ public class PacmanModel {
                 }
                 location = potentialLocation;
             } else {
-                Point2D potentialLocation = location.add(velocity);
+                potentialLocation = location.add(velocity);
                 potentialLocation = setGoingOffscreenNewLocation(potentialLocation);
                 while (grid[(int) potentialLocation.getX()][(int) potentialLocation.getY()] == CellValue.WALL) {
                     int randomNum = generator.nextInt(4);
@@ -248,7 +262,7 @@ public class PacmanModel {
     //sjekker om objektet går utafor brettet. Om sant vil objektet bli hentet inn igjen.
     public Point2D setGoingOffscreenNewLocation(Point2D newLocation) {
         //om objektet går utafor brettet på høgre side
-        if (newLocation.getY() > columnCount) {
+        if (newLocation.getY() >= columnCount) {
             newLocation = new Point2D(newLocation.getX(), 0);
         }
 
@@ -284,7 +298,6 @@ public class PacmanModel {
             return Direction.DOWN;
         }
     }
-
 
 
     public void sendGhostHome1() {
@@ -537,5 +550,21 @@ public class PacmanModel {
     public CellValue getCellValue(int row, int column) {
         assert row >= 0 && row < this.grid.length && column >= 0 && column < this.grid[0].length;
         return this.grid[row][column];
+    }
+
+    //public Point2D getPotentialLocation(Point2D velocity, Point2D location){
+    /*    Random generator = new Random();
+       Point2D potentialLocation = location.add(velocity);
+        potentialLocation = setGoingOffscreenNewLocation(potentialLocation);
+        while (grid[(int) potentialLocation.getX()][(int) potentialLocation.getY()] == CellValue.WALL) {
+            int randomNum = generator.nextInt(4);
+            Direction direction = intToDirection(randomNum);
+            velocity = changeVelocity(direction);
+            potentialLocation = location.add(velocity);
+        }
+      return location = potentialLocation;
+    }*/
+    public void setPotentialLocation(Point2D velocity, Point2D location) {
+
     }
 }
