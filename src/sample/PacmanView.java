@@ -1,4 +1,10 @@
 package sample;
+/*
+ * Denne klassa henter inn bilder for å vise ka som skal bli vist på skjermen.
+ * Den viser også retningen til Pacman basert på ka spilleren trykker på.
+ *
+ *
+ * */
 
 import javafx.fxml.FXML;
 import javafx.scene.Group;
@@ -7,141 +13,185 @@ import javafx.scene.image.ImageView;
 
 public class PacmanView extends Group {
 
-    public final static double CELL_WIDTH = 20.0;
+    public final static double CELLE_BREDDE = 20.0;
+
     @FXML
-    private int rowCount;
+    private int radTeller;
     @FXML
-    private int columnCount;
-    private ImageView[][] cellViews;
-    private final Image pacmanRightImage;
-    private final Image pacmanLeftImage;
-    private final Image pacmanUpImage;
-    private final Image pacmanDownImage;
-    private final Image ghostImage1;
-    private final Image ghostImage2;
-    private final Image blueGhostImage;
-    private final Image wallImage;
-    private final Image bigDotImage;
-    private final Image smallDotImage;
+    private int kolonneTeller;
+
+    private ImageView[][] celleViews;
+    private final Image pacmanHoegreBilde;
+    private final Image pacmanVenstreBilde;
+    private final Image pacmanOppBilde;
+    private final Image pacmanNedBilde;
+    private final Image spoekelseBilde1;
+    private final Image spoekelseBilde2;
+    private final Image blaatSpoekelseBilde;
+    private final Image veggBilde;
+    private final Image storPrikkBilde;
+    private final Image litenPrikkBilde;
+
 
     public PacmanView() {
-        this.pacmanRightImage = new Image(getClass().getResourceAsStream("/gifs/pacmanRight.gif"));
-        this.pacmanUpImage = new Image(getClass().getResourceAsStream("/gifs/pacmanUp.gif"));
-        this.pacmanDownImage = new Image(getClass().getResourceAsStream("/gifs/pacmanDown.gif"));
-        this.pacmanLeftImage = new Image(getClass().getResourceAsStream("/gifs/pacmanLeft.gif"));
-        this.ghostImage1 = new Image(getClass().getResourceAsStream("/gifs/redghost.gif"));
-        this.ghostImage2 = new Image(getClass().getResourceAsStream("/gifs/ghost2.gif"));
-        this.blueGhostImage = new Image(getClass().getResourceAsStream("/gifs/blueghost.gif"));
-        this.wallImage = new Image(getClass().getResourceAsStream("/gifs/wall.png"));
-        this.bigDotImage = new Image(getClass().getResourceAsStream("/gifs/whitedot.png"));
-        this.smallDotImage = new Image(getClass().getResourceAsStream("/gifs/smalldot.png"));
+        this.pacmanHoegreBilde = new Image(getClass().getResourceAsStream("/gifs/pacmanRight.gif"));
+        this.pacmanOppBilde = new Image(getClass().getResourceAsStream("/gifs/pacmanUp.gif"));
+        this.pacmanNedBilde = new Image(getClass().getResourceAsStream("/gifs/pacmanDown.gif"));
+        this.pacmanVenstreBilde = new Image(getClass().getResourceAsStream("/gifs/pacmanLeft.gif"));
+        this.spoekelseBilde1 = new Image(getClass().getResourceAsStream("/gifs/redghost.gif"));
+        this.spoekelseBilde2 = new Image(getClass().getResourceAsStream("/gifs/ghost2.gif"));
+        this.blaatSpoekelseBilde = new Image(getClass().getResourceAsStream("/gifs/blueghost.gif"));
+        this.veggBilde = new Image(getClass().getResourceAsStream("/gifs/wall.png"));
+        this.storPrikkBilde = new Image(getClass().getResourceAsStream("/gifs/whitedot.png"));
+        this.litenPrikkBilde = new Image(getClass().getResourceAsStream("/gifs/smalldot.png"));
     }
 
-    /*   private void initializeGrid() {
-           if (this.rowCount > 0 && this.columnCount > 0) {
-               this.cellViews = new ImageView[this.rowCount][this.columnCount];
-               for (int row = 0; row < this.rowCount; row++) {
-                   for (int column = 0; column < this.columnCount; column++) {
-                       ImageView imageView = new ImageView();
-                       imageView.setX((double) row * CELL_WIDTH);
-                       imageView.setY((double) column * CELL_WIDTH);
-                       imageView.setFitWidth(CELL_WIDTH);
-                       imageView.setFitWidth(CELL_WIDTH);
-                       this.cellViews[row][column] = imageView;
-                       this.getChildren().add(imageView);
-                   }
-               }
-           }
-       }
-   */
-    private void initializeGrid() {
-        if (this.rowCount > 0 && this.columnCount > 0) {
-            this.cellViews = new ImageView[this.rowCount][this.columnCount];
-            for (int row = 0; row < this.rowCount; row++) {
-                for (int column = 0; column < this.columnCount; column++) {
+    /*
+     * Denne metoden starter med å sjekke antall rader og kolonner om det er større enn 0.
+     * Om det er skal dei bli brukt til å skape brettet.
+     * Om den er 'false' skal den telle og sette bygge opp brettet.
+     * For kver gang kolonne har truffet 19 ganger vil det bli laget 1 rad.
+     * Dette vil skje til rad har nådd 21 ganger.
+     * */
+    private void initierGrid() {
+        if (this.radTeller > 0 && this.kolonneTeller > 0) {
+            this.celleViews = new ImageView[this.radTeller][this.kolonneTeller];
+            for (int rad = 0; rad < this.radTeller; rad++) {
+                for (int kolonne = 0; kolonne < this.kolonneTeller; kolonne++) {
                     ImageView imageView = new ImageView();
-                    imageView.setX((double) column * CELL_WIDTH);
-                    imageView.setY((double) row * CELL_WIDTH);
-                    imageView.setFitWidth(CELL_WIDTH);
-                    imageView.setFitHeight(CELL_WIDTH);
-                    this.cellViews[row][column] = imageView;
+                    imageView.setX((double) kolonne * CELLE_BREDDE);
+                    imageView.setY((double) rad * CELLE_BREDDE);
+                    imageView.setFitWidth(CELLE_BREDDE);
+                    imageView.setFitHeight(CELLE_BREDDE);
+                    this.celleViews[rad][kolonne] = imageView;
                     this.getChildren().add(imageView);
                 }
             }
         }
     }
 
-    public void update(PacmanModel model) {
-        assert model.getRowCount() == this.rowCount && model.getColumnCount() == this.columnCount;
-        //for each ImageView, set the image to correspond with the CellValue of that cell
-        for (int row = 0; row < this.rowCount; row++) {
-            for (int column = 0; column < this.columnCount; column++) {
-                PacmanModel.CellValue value = model.getCellValue(row, column);
-                if (value == PacmanModel.CellValue.WALL) {
-                    this.cellViews[row][column].setImage(this.wallImage);
-                } else if (value == PacmanModel.CellValue.BIGDOT) {
-                    this.cellViews[row][column].setImage(this.bigDotImage);
-                } else if (value == PacmanModel.CellValue.SMALLDOT) {
-                    this.cellViews[row][column].setImage(this.smallDotImage);
+
+    /**
+     * Denne metoden oppdaterer bildet av Pacman.
+     * Dette skal bli vist etter at spilleren har byttet retning på Pacman.
+     *
+     * @param modell
+     */
+    public void oppdater(PacmanModel modell) {
+        assert modell.getRadTeller() == this.radTeller && modell.getKolonneTeller() == this.kolonneTeller;
+
+        //Denne for-loopen skal sette riktig bilde som korresponderer med celleverdien av den cella.
+        for (int rad = 0; rad < this.radTeller; rad++) {
+            for (int kolonne = 0; kolonne < this.kolonneTeller; kolonne++) {
+                PacmanModel.CelleVerdi verdi = modell.getCelleVerdi(rad, kolonne);
+                if (verdi == PacmanModel.CelleVerdi.VEGG) {
+                    this.celleViews[rad][kolonne].setImage(this.veggBilde);
+                } else if (verdi == PacmanModel.CelleVerdi.STORPRIKK) {
+                    this.celleViews[rad][kolonne].setImage(this.storPrikkBilde);
+                } else if (verdi == PacmanModel.CelleVerdi.LITENPRIKK) {
+                    this.celleViews[rad][kolonne].setImage(this.litenPrikkBilde);
                 } else {
-                    this.cellViews[row][column].setImage(null);
+                    this.celleViews[rad][kolonne].setImage(null);
                 }
-                //check which direction PacMan is going in and display the corresponding image
-                if (row == model.getPacmanLocation().getX() && column == model.getPacmanLocation().getY() && (PacmanModel.getLastDirection() == PacmanModel.Direction.RIGHT || PacmanModel.getLastDirection() == PacmanModel.Direction.NONE)) {
-                    this.cellViews[row][column].setImage(this.pacmanRightImage);
-                } else if (row == model.getPacmanLocation().getX() && column == model.getPacmanLocation().getY() && PacmanModel.getLastDirection() == PacmanModel.Direction.LEFT) {
-                    this.cellViews[row][column].setImage(this.pacmanLeftImage);
-                } else if (row == model.getPacmanLocation().getX() && column == model.getPacmanLocation().getY() && PacmanModel.getLastDirection() == PacmanModel.Direction.UP) {
-                    this.cellViews[row][column].setImage(this.pacmanUpImage);
-                } else if (row == model.getPacmanLocation().getX() && column == model.getPacmanLocation().getY() && PacmanModel.getLastDirection() == PacmanModel.Direction.DOWN) {
-                    this.cellViews[row][column].setImage(this.pacmanDownImage);
+                //Denne 'if-checken' ser etter kas posisjon Pacman viser og setter bildet som korresponderer etter retningen
+                if (rad == modell.getPacmanPosisjon().getX()
+                        && kolonne == modell.getPacmanPosisjon().getY()
+                        && (PacmanModel.getSisteRetning() == PacmanModel.Retning.HOEGRE
+                        || PacmanModel.getSisteRetning() == PacmanModel.Retning.INGEN)) {
+                    this.celleViews[rad][kolonne].setImage(this.pacmanHoegreBilde);
+                } else if (rad == modell.getPacmanPosisjon().getX()
+                        && kolonne == modell.getPacmanPosisjon().getY()
+                        && PacmanModel.getSisteRetning() == PacmanModel.Retning.VENSTRE) {
+                    this.celleViews[rad][kolonne].setImage(this.pacmanVenstreBilde);
+                } else if (rad == modell.getPacmanPosisjon().getX()
+                        && kolonne == modell.getPacmanPosisjon().getY()
+                        && PacmanModel.getSisteRetning() == PacmanModel.Retning.OPP) {
+                    this.celleViews[rad][kolonne].setImage(this.pacmanOppBilde);
+                } else if (rad == modell.getPacmanPosisjon().getX()
+                        && kolonne == modell.getPacmanPosisjon().getY()
+                        && PacmanModel.getSisteRetning() == PacmanModel.Retning.NED) {
+                    this.celleViews[rad][kolonne].setImage(this.pacmanNedBilde);
                 }
-                //make ghosts "blink" towards the end of ghostEatingMode (display regular ghost images on alternating updates of the counter)
-                if (PacmanModel.isGhostEating() && (Controller.getGhostEatingModeCounter() == 6 || Controller.getGhostEatingModeCounter() == 4 || Controller.getGhostEatingModeCounter() == 2)) {
-                    getGhostLocation1(model, row, column);
+
+                // Denne skal få spøkelsene til å blinke mot slutten av spøkelseSpiseModus
+                // Den skal også få bildene til å blinke mellom vanlig og blå modus
+                if (PacmanModel.erSpoekelseSpiser()
+                        && (Controller.getSpoekelseSpiseModusTeller() == 6
+                        || Controller.getSpoekelseSpiseModusTeller() == 4
+                        || Controller.getSpoekelseSpiseModusTeller() == 2)) {
+                    getSpoekelsePlassering(modell, rad, kolonne);
                 }
-                //display blue ghosts in ghostEatingMode
-                else if (PacmanModel.isGhostEating()) {
-                    if (row == model.getGhost1Location().getX() && column == model.getGhost1Location().getY()) {
-                        this.cellViews[row][column].setImage(this.blueGhostImage);
+                // Om Pacman er i spøkelseSpiseModus skal spøkelsene bli vist i blått bilde
+                else if (PacmanModel.erSpoekelseSpiser()) {
+                    if (rad == modell.getSpoekelsePosisjon1().getX() && kolonne == modell.getSpoekelsePosisjon1().getY()) {
+                        this.celleViews[rad][kolonne].setImage(this.blaatSpoekelseBilde);
                     }
-                    if (row == model.getGhost2Location().getX() && column == model.getGhost2Location().getY()) {
-                        this.cellViews[row][column].setImage(this.blueGhostImage);
+                    if (rad == modell.getSpoekelsePosisjon2().getX() && kolonne == modell.getSpoekelsePosisjon2().getY()) {
+                        this.celleViews[rad][kolonne].setImage(this.blaatSpoekelseBilde);
                     }
                 }
-                //dispaly regular ghost images otherwise
+                // Om ikkje skal det bli vist normale bilder
                 else {
-                    getGhostLocation1(model, row, column);
+                    getSpoekelsePlassering(modell, rad, kolonne);
                 }
             }
         }
     }
 
-    private void getGhostLocation1(PacmanModel model, int row, int column) {
-        if (row == model.getGhost1Location().getX() && column == model.getGhost1Location().getY()) {
-            this.cellViews[row][column].setImage(this.ghostImage1);
+
+    /**
+     * Denne metoden oppdaterer kor spøkelsene skal vere på skjermen.
+     * Den sjekker mot spøkelset X, Y koordinater mot rad og kolonne, for å vite kor spøkelse skal vere.
+     *
+     * @param modell  - spøkelse sine koordinater
+     * @param rad
+     * @param kolonne
+     */
+    private void getSpoekelsePlassering(PacmanModel modell, int rad, int kolonne) {
+        if (rad == modell.getSpoekelsePosisjon1().getX()
+                && kolonne == modell.getSpoekelsePosisjon1().getY()) {
+            this.celleViews[rad][kolonne].setImage(this.spoekelseBilde1);
         }
-        if (row == model.getGhost2Location().getX() && column == model.getGhost2Location().getY()) {
-            this.cellViews[row][column].setImage(this.ghostImage2);
+        if (rad == modell.getSpoekelsePosisjon2().getX()
+                && kolonne == modell.getSpoekelsePosisjon2().getY()) {
+            this.celleViews[rad][kolonne].setImage(this.spoekelseBilde2);
         }
     }
 
-    public int getRowCount() {
-        return this.rowCount;
+
+    /**
+     * @return Denne returnerer antall rader
+     */
+    public int getRadTeller() {
+        return this.radTeller;
     }
 
-    public void setRowCount(int rowCount) {
-        this.rowCount = rowCount;
-        this.initializeGrid();
+    /**
+     * Denne setter inn rader og henter 'initiergrid()' metoden.
+     *
+     * @param radTeller
+     */
+    public void setRadTeller(int radTeller) {
+        this.radTeller = radTeller;
+        this.initierGrid();
     }
 
-    public int getColumnCount() {
-        return this.columnCount;
+    /**
+     * @return Denne returnerer antall kolonner
+     */
+    public int getKolonneTeller() {
+        return this.kolonneTeller;
     }
 
-    public void setColumnCount(int columnCount) {
-        this.columnCount = columnCount;
-        this.initializeGrid();
+
+    /**
+     * Denne setter inn kolonner og henter 'initiergrid()' metoden.
+     *
+     * @param kolonneTeller
+     */
+    public void setKolonneTeller(int kolonneTeller) {
+        this.kolonneTeller = kolonneTeller;
+        this.initierGrid();
     }
 
 }

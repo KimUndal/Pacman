@@ -1,3 +1,17 @@
+/*
+ * Denne klassa har to enumer, 'CelleVerdi' og 'Retning'.
+ * Andre ting som denne klassa inneholder er metoder for å :
+ * starte nivået,
+ * starte neste nytt spill,
+ * laste inn neste nivå,
+ * bevege spøkelsene,
+ * bevege Pacman,
+ * metode som gir ny posisjon om Pacman/spøkelsene går ut av skjermen,
+ * endre retning om spøkelsene går i veggen,
+ * og metode som sjekker om 'grid-tabellen' er lovlig.
+ *
+ * */
+
 package sample;
 
 import javafx.fxml.FXML;
@@ -9,40 +23,57 @@ import java.util.Random;
 import java.util.Scanner;
 
 public class PacmanModel {
-    public enum CellValue {
-        EMPTY, SMALLDOT, BIGDOT, WALL, GHOSTHOME1, GHOSTHOME2, PACKHOME
+    /**
+     * Dette dokumenterer det som skal bli omgjort til det som skal bli vist på skjermen fra tekstfilane.
+     */
+    public enum CelleVerdi {
+        TOM, LITENPRIKK, STORPRIKK, VEGG, SPOEKELSEHJEM1, SPOEKELSEHJEM2, PACMANHJEM
     }
 
-    public enum Direction {
-        UP, DOWN, LEFT, RIGHT, NONE
+    /**
+     * Dette dokumenterer retningane til Pacman og spoekelsene
+     */
+    public enum Retning {
+        VENSTRE, HOEGRE, OPP, NED, INGEN
     }
 
     @FXML
-    private int rowCount;
+    private int radTeller;
     @FXML
-    private int columnCount;
-    private CellValue[][] grid;
+    private int kolonneTeller;
+
+    private CelleVerdi[][] grid;
     private int score;
-    private int level;
-    private int dotCount;
+    private int nivaa;
+    private int prikkTeller;
     private static boolean gameOver;
-    private static boolean youWon;
-    private static boolean ghostEating;
-    private Point2D pacmanLocation;
-    private Point2D pacmanVelocity;
-    private Point2D ghost1Location;
-    private Point2D ghost1Velocity;
-    private Point2D ghost2Location;
-    private Point2D ghost2Velocity;
-    private static Direction lastDirection;
-    private static Direction currentDirection;
+    private static boolean duVant;
+    private static boolean spoekelseSpiseModus;
+    private Point2D pacmanPosisjon;
+    private Point2D pacmanFart;
+    private Point2D spoekelseposisjon1;
+    private Point2D spoekelseFart1;
+    private Point2D spoekelseposisjon2;
+    private Point2D spoekelseFart2;
+    private static Retning sisteRetning;
+    private static Retning naaverendeRetning;
 
     public PacmanModel() {
-        this.startNewGame();
+        this.startNyttSpill();
     }
 
-    public void initializeLevel(String filename) {
-        File file = new File(filename);
+    /**
+     * Denne metoden vil lese inn fil fra 'Levels' og starte nivået.
+     * Den første scanneren vil telle radene og kolonnene.
+     * Den andre scanneren vil plassere ut det som skal bli vist på skjermen. Fra enumet 'CelleVerdi'
+     * Til slutt vil den plassere ut spøkelsene og Pacman, samtidig gi dei retning og fart.
+     *
+     * @param filnavn tar inn navnet på fila
+     */
+
+    public void initierNivaa(String filnavn) {
+        //denne første scanneren teller opp rader og kolonner.
+        File file = new File(filnavn);
         Scanner scanner = null;
         try {
             scanner = new Scanner(file);
@@ -52,385 +83,458 @@ public class PacmanModel {
         while (true) {
             assert scanner != null;
             if (!scanner.hasNextLine()) break;
-            String line = scanner.nextLine();
-            Scanner lineScanner = new Scanner(line);
-            while (lineScanner.hasNext()) {
-                lineScanner.next();
-                columnCount++;
+            String linje = scanner.nextLine();
+            Scanner linjeScanner = new Scanner(linje);
+            while (linjeScanner.hasNext()) {
+                linjeScanner.next();
+                kolonneTeller++;
             }
-            rowCount++;
+            radTeller++;
         }
-        columnCount = columnCount / rowCount;
+        kolonneTeller = kolonneTeller / radTeller;
+
+        //Scanner #2 gjør om bokstavene i tekstdokumenter til bilder i spillet.
         Scanner scanner2 = null;
         try {
             scanner2 = new Scanner(file);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
-        grid = new CellValue[rowCount][columnCount];
-        int row = 0;
-        int pacmanRow = 0;
-        int pacmanColumn = 0;
-        int ghost1row = 0;
-        int ghost1column = 0;
-        int ghost2row = 0;
-        int ghost2column = 0;
+        grid = new CelleVerdi[radTeller][kolonneTeller];
+        int rad = 0;
+        int pacmanRad = 0;
+        int pacmanKolonne = 0;
+        int spoekelseRad1 = 0;
+        int spoekelseKolonne1 = 0;
+        int spoekelseRad2 = 0;
+        int spoekelseKolonne2 = 0;
         while (true) {
             assert scanner2 != null;
             if (!scanner2.hasNextLine()) break;
-            int column = 0;
-            String line = scanner2.nextLine();
-            Scanner lineScanner = new Scanner(line);
-            while (lineScanner.hasNext()) {
-                String value = lineScanner.next();
-                CellValue thisValue;
-                switch (value) {
-                    case "W" -> thisValue = CellValue.WALL;
+            int kolonne = 0;
+            String linje = scanner2.nextLine();
+            Scanner linjeScanner = new Scanner(linje);
+            while (linjeScanner.hasNext()) {
+                String verdi = linjeScanner.next();
+                CelleVerdi denneVerdi;
+                switch (verdi) {
+                    case "W" -> denneVerdi = CelleVerdi.VEGG;
                     case "S" -> {
-                        thisValue = CellValue.SMALLDOT;
-                        dotCount++;
+                        denneVerdi = CelleVerdi.LITENPRIKK;
+                        prikkTeller++;
                     }
                     case "B" -> {
-                        thisValue = CellValue.BIGDOT;
-                        dotCount++;
+                        denneVerdi = CelleVerdi.STORPRIKK;
+                        prikkTeller++;
                     }
                     case "1" -> {
-                        thisValue = CellValue.GHOSTHOME1;
-                        ghost1row = row;
-                        ghost1column = column;
+                        denneVerdi = CelleVerdi.SPOEKELSEHJEM1;
+                        spoekelseRad1 = rad;
+                        spoekelseKolonne1 = kolonne;
                     }
                     case "2" -> {
-                        thisValue = CellValue.GHOSTHOME2;
-                        ghost2row = row;
-                        ghost2column = column;
+                        denneVerdi = CelleVerdi.SPOEKELSEHJEM2;
+                        spoekelseRad2 = rad;
+                        spoekelseKolonne2 = kolonne;
                     }
                     case "P" -> {
-                        thisValue = CellValue.PACKHOME;
-                        pacmanRow = row;
-                        pacmanColumn = column;
+                        denneVerdi = CelleVerdi.PACMANHJEM;
+                        pacmanRad = rad;
+                        pacmanKolonne = kolonne;
                     }
-                    default -> thisValue = CellValue.EMPTY;
+                    default -> denneVerdi = CelleVerdi.TOM;
                 }
-                grid[row][column] = thisValue;
-                column++;
+                grid[rad][kolonne] = denneVerdi;
+                kolonne++;
             }
-            row++;
+            rad++;
         }
-        pacmanLocation = new Point2D(pacmanRow, pacmanColumn);
-        pacmanVelocity = new Point2D(0, 0);
-        ghost1Location = new Point2D(ghost1row, ghost1column);
-        ghost1Velocity = new Point2D(-1, 0);
-        ghost2Location = new Point2D(ghost2row, ghost2column);
-        ghost2Velocity = new Point2D(-1, 0);
-        currentDirection = Direction.NONE;
-        lastDirection = Direction.NONE;
+        //Her gir eg start fart og posisjon til Pacman og spøkelsene.
+        pacmanPosisjon = new Point2D(pacmanRad, pacmanKolonne);
+        pacmanFart = new Point2D(0, 0);
+        spoekelseposisjon1 = new Point2D(spoekelseRad1, spoekelseKolonne1);
+        spoekelseFart1 = new Point2D(-1, 0);
+        spoekelseposisjon2 = new Point2D(spoekelseRad2, spoekelseKolonne2);
+        spoekelseFart2 = new Point2D(-1, 0);
+        naaverendeRetning = Retning.INGEN;
+        sisteRetning = Retning.INGEN;
     }
 
 
-    public void startNewGame() {
+    /**
+     * Denne metoden resetter alt og starter spillet på nytt.
+     */
+    public void startNyttSpill() {
         gameOver = false;
-        youWon = false;
-        ghostEating = false;
-        dotCount = 0;
-        columnCount = 0;
-        rowCount = 0;
+        duVant = false;
+        spoekelseSpiseModus = false;
+        prikkTeller = 0;
+        kolonneTeller = 0;
+        radTeller = 0;
         this.score = 0;
-        this.level = 1;
-        this.initializeLevel(Controller.getLevelFile(0));
+        this.nivaa = 1;
+        this.initierNivaa(Controller.getNivaaFil(0));
     }
 
-    public void startNextLevel() {
-        if (this.isLevelComplete()) {
-            this.level++;
-            rowCount = 0;
-            columnCount = 0;
-            youWon = false;
-            ghostEating = false;
+    /**
+     * Denne metoden vil sjekke om nivået er ferdig. Resette posisjon til spøkelsene og Pacman,
+     * samtidig vil den starte neste nivå.
+     */
+    public void startNesteNivaa() {
+        if (this.erNivaaFerdig()) {
+            this.nivaa++;
+            radTeller = 0;
+            kolonneTeller = 0;
+            duVant = false;
+            spoekelseSpiseModus = false;
             try {
-                this.initializeLevel(Controller.getLevelFile(level - 1));
+                this.initierNivaa(Controller.getNivaaFil(nivaa - 1));
             } catch (ArrayIndexOutOfBoundsException e) {
-                youWon = true;
+                duVant = true;
                 gameOver = true;
-                level--;
+                nivaa--;
             }
         }
     }
 
-    public void moveGhosts() {
-        Point2D[] ghostData1 = moveAGhost(ghost1Velocity, ghost1Location);
-        Point2D[] ghostData2 = moveAGhost(ghost2Velocity, ghost2Location);
-        ghost1Velocity = ghostData1[0];
-        ghost1Location = ghostData1[1];
-        ghost2Velocity = ghostData2[0];
-        ghost2Location = ghostData2[1];
+    /**
+     * Denne metoden vil gi bevegelse til spøkelsene. Den tar inn metoden 'BevegEttSpoekelse(param1, param2).
+     * Putter den i ein data tabell for begge to. Og gjer dei fart og posisjon.
+     */
+    public void bevegSpoekelser() {
+        Point2D[] spoekelseData1 = bevegEttSpoekelse(spoekelseFart1, spoekelseposisjon1);
+        Point2D[] spoekelseData2 = bevegEttSpoekelse(spoekelseFart2, spoekelseposisjon2);
+        spoekelseFart1 = spoekelseData1[0];
+        spoekelseposisjon1 = spoekelseData1[1];
+        spoekelseFart2 = spoekelseData2[0];
+        spoekelseposisjon2 = spoekelseData2[1];
     }
 
-    public Point2D[] moveAGhost(Point2D velocity, Point2D location) {
-        Random generator = new Random();
-        Point2D potentialLocation;
-        if (!ghostEating) {
-            if (location.getY() == pacmanLocation.getY()) {
-                if (location.getX() > pacmanLocation.getX()) {
-                    velocity = changeVelocity(Direction.UP);
-                } else {
-                    velocity = changeVelocity(Direction.DOWN);
-                }
-                potentialLocation = location.add(velocity);
-                potentialLocation = setGoingOffscreenNewLocation(potentialLocation);
-                while (grid[(int) potentialLocation.getX()][(int) potentialLocation.getY()] == CellValue.WALL) {
-                    int randomNum = generator.nextInt(4);
-                    Direction direction = intToDirection(randomNum);
-                    velocity = changeVelocity(direction);
-                    potentialLocation = location.add(velocity);
-                }
-                location = potentialLocation;
-            } else if (location.getX() == pacmanLocation.getX()) {
-                if (location.getY() > pacmanLocation.getY()) {
-                    velocity = changeVelocity(Direction.LEFT);
-                } else {
-                    velocity = changeVelocity(Direction.RIGHT);
-                }
+    /**
+     * Denne metoden vil gi fart til et spøkelse og samtidig sjekke for posisjonen.
+     * Om spøkelset treffer ein vegg vil den få ein ny tilfeldig posisjon.
+     * 'potensiellPosisjon' er den tenkte posisjonen den vil få før den får informasjon om den har truffet ein vegg.
+     * Denne sjekken vil heile tida pågå under kjøringa av programmet.
+     * Om den ikkje har truffet ein vegg vil koordinatane bli gitt til 'posisjon'.
+     *
+     * @param fart
+     * @param posisjon
+     * @return Retur verdien er ein tabell som gir fart og posisjon etter at den har sjekket om den har truffet ein vegg.
+     */
+    public Point2D[] bevegEttSpoekelse(Point2D fart, Point2D posisjon) {
 
-                potentialLocation = location.add(velocity);
-                potentialLocation = setGoingOffscreenNewLocation(potentialLocation);
-                while (grid[(int) potentialLocation.getX()][(int) potentialLocation.getY()] == CellValue.WALL) {
-                    int randomNum = generator.nextInt(4);
-                    Direction direction = intToDirection(randomNum);
-                    velocity = changeVelocity(direction);
-                    potentialLocation = location.add(velocity);
-                }
-                location = potentialLocation;
-            }
-            else{
-                 potentialLocation = location.add(velocity);
-                 potentialLocation = setGoingOffscreenNewLocation(potentialLocation);
-                while (grid[(int) potentialLocation.getX()][(int) potentialLocation.getY()] == CellValue.WALL) {
-                    int randomNum = generator.nextInt(4);
-                    Direction direction = intToDirection(randomNum);
-                    velocity = changeVelocity(direction);
-                    potentialLocation = location.add(velocity);
-                }
-                location = potentialLocation;
-            }
-        }
-        if (ghostEating) {
-            if (location.getY() == pacmanLocation.getY()) {
-                if (location.getX() > pacmanLocation.getX()) {
-                    velocity = changeVelocity(Direction.DOWN);
+        boolean checkPacmanLocationY = posisjon.getY() == pacmanPosisjon.getY();
+        boolean checkPacmanLocationX = posisjon.getX() > pacmanPosisjon.getX();
+        boolean checkPacmanLocationX1 = posisjon.getX() == pacmanPosisjon.getX();
+        boolean checkPacmanLocationY1 = posisjon.getY() > pacmanPosisjon.getY();
+        Point2D potensiellPosisjon;
+        if (!spoekelseSpiseModus) {
+            if (checkPacmanLocationY) {
+                if (checkPacmanLocationX) {
+                    fart = endreFart(Retning.OPP);
                 } else {
-                    velocity = changeVelocity(Direction.UP);
+                    fart = endreFart(Retning.NED);
                 }
-                potentialLocation = location.add(velocity);
-                potentialLocation = setGoingOffscreenNewLocation(potentialLocation);
-                while (grid[(int) potentialLocation.getX()][(int) potentialLocation.getY()] == CellValue.WALL) {
-                    int randomNum = generator.nextInt(4);
-                    Direction direction = intToDirection(randomNum);
-                    velocity = changeVelocity(direction);
-                    potentialLocation = location.add(velocity);
+                potensiellPosisjon = posisjon.add(fart);
+                potensiellPosisjon = setGaarUtAvSkjermNyposisjon(potensiellPosisjon);
+                while (grid[(int) potensiellPosisjon.getX()][(int) potensiellPosisjon.getY()] == CelleVerdi.VEGG) {
+                    fart = endreFart(nyRetning());
+                    potensiellPosisjon = posisjon.add(fart);
                 }
-                location = potentialLocation;
-            } else if (location.getX() == pacmanLocation.getX()) {
-                if (location.getY() > pacmanLocation.getY()) {
-                    velocity = changeVelocity(Direction.RIGHT);
+                posisjon = potensiellPosisjon;
+            } else if (checkPacmanLocationX1) {
+                if (checkPacmanLocationY1) {
+                    fart = endreFart(Retning.VENSTRE);
                 } else {
-                    velocity = changeVelocity(Direction.LEFT);
+                    fart = endreFart(Retning.HOEGRE);
                 }
-                potentialLocation = location.add(velocity);
-                potentialLocation = setGoingOffscreenNewLocation(potentialLocation);
-                while (grid[(int) potentialLocation.getX()][(int) potentialLocation.getY()] == CellValue.WALL) {
-                    int randomNumb = generator.nextInt(4);
-                    Direction direction = intToDirection(randomNumb);
-                    velocity = changeVelocity(direction);
-                    potentialLocation = location.add(velocity);
+                potensiellPosisjon = posisjon.add(fart);
+                potensiellPosisjon = setGaarUtAvSkjermNyposisjon(potensiellPosisjon);
+                while (grid[(int) potensiellPosisjon.getX()][(int) potensiellPosisjon.getY()] == CelleVerdi.VEGG) {
+                    fart = endreFart(nyRetning());
+                    potensiellPosisjon = posisjon.add(fart);
                 }
-                location = potentialLocation;
+                posisjon = potensiellPosisjon;
             } else {
-                potentialLocation = location.add(velocity);
-                potentialLocation = setGoingOffscreenNewLocation(potentialLocation);
-                while (grid[(int) potentialLocation.getX()][(int) potentialLocation.getY()] == CellValue.WALL) {
-                    int randomNum = generator.nextInt(4);
-                    Direction direction = intToDirection(randomNum);
-                    velocity = changeVelocity(direction);
-                    potentialLocation = location.add(velocity);
+                potensiellPosisjon = posisjon.add(fart);
+                potensiellPosisjon = setGaarUtAvSkjermNyposisjon(potensiellPosisjon);
+                while (grid[(int) potensiellPosisjon.getX()][(int) potensiellPosisjon.getY()] == CelleVerdi.VEGG) {
+                    fart = endreFart(nyRetning());
+                    potensiellPosisjon = posisjon.add(fart);
                 }
-                location = potentialLocation;
+                posisjon = potensiellPosisjon;
             }
         }
-        return new Point2D[]{velocity, location};
+        if (spoekelseSpiseModus) {
+            if (checkPacmanLocationY) {
+                if (checkPacmanLocationX) {
+                    fart = endreFart(Retning.NED);
+                } else {
+                    fart = endreFart(Retning.OPP);
+                }
+                potensiellPosisjon = posisjon.add(fart);
+                potensiellPosisjon = setGaarUtAvSkjermNyposisjon(potensiellPosisjon);
+                while (grid[(int) potensiellPosisjon.getX()][(int) potensiellPosisjon.getY()] == CelleVerdi.VEGG) {
+                    fart = endreFart(nyRetning());
+                    potensiellPosisjon = posisjon.add(fart);
+                }
+                posisjon = potensiellPosisjon;
+
+            } else if (checkPacmanLocationX1) {
+                if (checkPacmanLocationY1) {
+                    fart = endreFart(Retning.HOEGRE);
+                } else {
+                    fart = endreFart(Retning.VENSTRE);
+                }
+                potensiellPosisjon = posisjon.add(fart);
+                potensiellPosisjon = setGaarUtAvSkjermNyposisjon(potensiellPosisjon);
+                while (grid[(int) potensiellPosisjon.getX()][(int) potensiellPosisjon.getY()] == CelleVerdi.VEGG) {
+                    fart = endreFart(nyRetning());
+                    potensiellPosisjon = posisjon.add(fart);
+                }
+
+                posisjon = potensiellPosisjon;
+            } else {
+                potensiellPosisjon = posisjon.add(fart);
+                potensiellPosisjon = setGaarUtAvSkjermNyposisjon(potensiellPosisjon);
+                while (grid[(int) potensiellPosisjon.getX()][(int) potensiellPosisjon.getY()] == CelleVerdi.VEGG) {
+                    fart = endreFart(nyRetning());
+                    potensiellPosisjon = posisjon.add(fart);
+                }
+                posisjon = potensiellPosisjon;
+            }
+        }
+        return new Point2D[]{fart, posisjon};
     }
 
-    //sjekker om objektet går utafor brettet. Om sant vil objektet bli hentet inn igjen.
-    public Point2D setGoingOffscreenNewLocation(Point2D newLocation) {
+
+    /**
+     * sjekker om objektet går utafor brettet. Om sant vil objektet bli hentet inn igjen.
+     *
+     * @param nyposisjon
+     * @return Returverdien er posisjonen til den andre sida av brettet.
+     */
+    public Point2D setGaarUtAvSkjermNyposisjon(Point2D nyposisjon) {
         //om objektet går utafor brettet på høgre side
-        if (newLocation.getY() >= columnCount) {
-            newLocation = new Point2D(newLocation.getX(), 0);
+        if (nyposisjon.getY() >= kolonneTeller) {
+            nyposisjon = new Point2D(nyposisjon.getX(), 0);
         }
-
         //om objektet går utafor brettet på venstre side
-        if (newLocation.getY() < 0) {
-            newLocation = new Point2D(newLocation.getX(), columnCount - 1);
+        if (nyposisjon.getY() < 0) {
+            nyposisjon = new Point2D(nyposisjon.getX(), kolonneTeller - 1);
         }
-        return newLocation;
-    }
-
-    public Point2D changeVelocity(Direction direction) {
-        if (direction == Direction.LEFT) {
-            return new Point2D(0, -1);
-        } else if (direction == Direction.RIGHT) {
-            return new Point2D(0, 1);
-        } else if (direction == Direction.UP) {
-            return new Point2D(-1, 0);
-        } else if (direction == Direction.DOWN) {
-            return new Point2D(1, 0);
-        } else {
-            return new Point2D(0, 0);
-        }
-    }
-
-    public Direction intToDirection(int numb) {
-        if (numb == 0) {
-            return Direction.LEFT;
-        } else if (numb == 1) {
-            return Direction.RIGHT;
-        } else if (numb == 2) {
-            return Direction.UP;
-        } else {
-            return Direction.DOWN;
-        }
+        return nyposisjon;
     }
 
 
-    public void sendGhostHome1() {
-        for (int row = 0; row < this.rowCount; row++) {
-            for (int column = 0; column < this.columnCount; column++) {
-                if (grid[row][column] == CellValue.GHOSTHOME1) {
-                    ghost1Location = new Point2D(row, column);
+    /**
+     * Denne metoden bruker ein 'enhanced switch' metode som bruker lambdautrykk. Denne gir ny retning til Point2D objektet.
+     * Samtidig gjør den om enumet 'Retning' og verdiane inni der til koordinater.
+     *
+     * @param retning
+     * @return bytter retning på enten spøkelse eller pacman.
+     */
+    public Point2D endreFart(Retning retning) {
+        return switch (retning) {
+            case VENSTRE -> new Point2D(0, -1);
+            case HOEGRE -> new Point2D(0, 1);
+            case OPP -> new Point2D(-1, 0);
+            case NED -> new Point2D(1, 0);
+            case INGEN -> new Point2D(0, 0);
+        };
+    }
+
+    /**
+     * Denne metoden henter inn enumet 'Retning' og gir ny retning basert på tall. Om tallet skulle være utenfor rekkevidda
+     * vil den kaste 'IllegalStateException'.
+     *
+     * @param tall
+     * @return returnerer retning basert på kva slags tall som kom inn.
+     */
+    public Retning intTilRetning(int tall) {
+        return switch (tall) {
+            case 0 -> Retning.VENSTRE;
+            case 1 -> Retning.HOEGRE;
+            case 2 -> Retning.OPP;
+            case 3 -> Retning.NED;
+            default -> throw new IllegalStateException("Unexpected value: " + tall);
+        };
+    }
+
+
+    /**
+     * Gir hjem posisjon til spøkelse 1
+     */
+    public void sendSpoekelseHjem1() {
+        for (int rad = 0; rad < this.radTeller; rad++) {
+            for (int kolonne = 0; kolonne < this.kolonneTeller; kolonne++) {
+                if (grid[rad][kolonne] == CelleVerdi.SPOEKELSEHJEM1) {
+                    spoekelseposisjon1 = new Point2D(rad, kolonne);
                 }
             }
         }
-        ghost1Velocity = new Point2D(-1, 0);
+        spoekelseFart1 = new Point2D(-1, 0);
     }
 
-    public void sendGhostHome2() {
-        for (int row = 0; row < this.rowCount; row++) {
-            for (int column = 0; column < this.columnCount; column++) {
-                if (grid[row][column] == CellValue.GHOSTHOME2) {
-                    ghost2Location = new Point2D(row, column);
+    /**
+     * Gir hjem posisjon til spøkelse 2
+     */
+    public void sendSpoekelseHjem2() {
+        for (int rad = 0; rad < this.radTeller; rad++) {
+            for (int kolonne = 0; kolonne < this.kolonneTeller; kolonne++) {
+                if (grid[rad][kolonne] == CelleVerdi.SPOEKELSEHJEM2) {
+                    spoekelseposisjon2 = new Point2D(rad, kolonne);
                 }
             }
         }
-        ghost2Velocity = new Point2D(-1, 0);
+        spoekelseFart2 = new Point2D(-1, 0);
     }
 
-    public void step(Direction direction) {
-        this.movePacman(direction);
-        CellValue pacmanLocationCellValue = grid[(int) pacmanLocation.getX()][(int) pacmanLocation.getY()];
-        if (pacmanLocationCellValue == CellValue.SMALLDOT) {
-            grid[(int) pacmanLocation.getX()][(int) pacmanLocation.getY()] = CellValue.EMPTY;
-            dotCount--;
+    /**
+     * pcvp = PacmanCelleverdiPosisjon
+     * Denne metoden gir retning til Pacman.
+     * Den sjekker om Pacman har gått over dei ulike tinga som gir Pacman poeng eller spøkelsene.
+     * Den sjekker også om Pacman har gått over ei stor kule som gjør spøkelsene redde.
+     * Om den har det henter den inn den inn metoden 'sendSpoekelseHjem()' og får ekstra poeng.
+     * Den sjekker også om nivået er ferdig. Om den er det henter den inn metoden 'startNesteNivaa()' .
+     *
+     * @param retning
+     */
+    public void steg(Retning retning) {
+        this.bevegPacman(retning);
+        CelleVerdi pcvp = grid[(int) pacmanPosisjon.getX()][(int) pacmanPosisjon.getY()];
+        if (pcvp == CelleVerdi.LITENPRIKK) {
+            grid[(int) pacmanPosisjon.getX()][(int) pacmanPosisjon.getY()] = CelleVerdi.TOM;
+            prikkTeller--;
             score += 10;
         }
-        if (pacmanLocationCellValue == CellValue.BIGDOT) {
-            grid[(int) pacmanLocation.getX()][(int) pacmanLocation.getY()] = CellValue.EMPTY;
-            dotCount--;
+        if (pcvp == CelleVerdi.STORPRIKK) {
+            grid[(int) pacmanPosisjon.getX()][(int) pacmanPosisjon.getY()] = CelleVerdi.TOM;
+            prikkTeller--;
             score += 50;
-            ghostEating = true;
-            Controller.setGhostEatingCounter();
+            spoekelseSpiseModus = true;
+            Controller.setSpoekelseSpiserTeller();
         }
-        if (ghostEating) {
-            if (pacmanLocation.equals(ghost1Location)) {
-                sendGhostHome1();
+        if (spoekelseSpiseModus) {
+            if (pacmanPosisjon.equals(spoekelseposisjon1)) {
+                sendSpoekelseHjem1();
                 score += 100;
             }
-            if (pacmanLocation.equals(ghost2Location)) {
-                sendGhostHome2();
-                score += 100;
-            }
-        }
-        this.moveGhosts();
-        if (ghostEating) {
-            if (pacmanLocation.equals(ghost1Location)) {
-                sendGhostHome1();
-                score += 100;
-            }
-            if (pacmanLocation.equals(ghost2Location)) {
-                sendGhostHome2();
+            if (pacmanPosisjon.equals(spoekelseposisjon2)) {
+                sendSpoekelseHjem2();
                 score += 100;
             }
         } else {
-            if (pacmanLocation.equals(ghost1Location)) {
+            if (pacmanPosisjon.equals(spoekelseposisjon1)) {
                 gameOver = true;
-                pacmanLocation = new Point2D(0, 0);
+                pacmanFart = new Point2D(0, 0);
             }
-            if (pacmanLocation.equals(ghost2Location)) {
+            if (pacmanPosisjon.equals(spoekelseposisjon2)) {
                 gameOver = true;
-                pacmanLocation = new Point2D(0, 0);
+                pacmanFart = new Point2D(0, 0);
             }
         }
-        if (this.isLevelComplete()) {
-            pacmanVelocity = new Point2D(0, 0);
-            startNextLevel();
+        this.bevegSpoekelser();
+        if (spoekelseSpiseModus) {
+            if (pacmanPosisjon.equals(spoekelseposisjon1)) {
+                sendSpoekelseHjem1();
+                score += 100;
+            }
+            if (pacmanPosisjon.equals(spoekelseposisjon2)) {
+                sendSpoekelseHjem2();
+                score += 100;
+            }
+        } else {
+            if (pacmanPosisjon.equals(spoekelseposisjon1)) {
+                gameOver = true;
+                pacmanPosisjon = new Point2D(0, 0);
+            }
+            if (pacmanPosisjon.equals(spoekelseposisjon2)) {
+                gameOver = true;
+                pacmanPosisjon = new Point2D(0, 0);
+            }
+        }
+        if (this.erNivaaFerdig()) {
+            pacmanFart = new Point2D(0, 0);
+            startNesteNivaa();
         }
     }
 
-    public void movePacman(Direction direction) {
-        Point2D potentialPacmanVelocity = changeVelocity(direction);
-        Point2D potentialPacmanLocation = pacmanLocation.add(potentialPacmanVelocity);
+    /**
+     * Denne metoden vil få inn parameter 'retning' og gjør om retninga til koordinater.
+     * Den vil sjekke om Pacman går utafor skjermen og om den gjør det vil metoden 'setGaarUtAvSkjerm(Point2D param)
+     * ta seg av det.
+     * Deretter vil den heile tida sjekke om 'retning' treffer ein vegg. Om den gjør det skal Pacman sin fart vere 'INGEN'.
+     * Eller skal den tenkte fart og posisjon bli den endelige posisjonen.
+     *
+     * @param retning
+     */
+    public void bevegPacman(Retning retning) {
+        Point2D potensiellPacmanFart = endreFart(retning);
+        Point2D potensiellpacmanPosisjon = pacmanPosisjon.add(potensiellPacmanFart);
 
-        potentialPacmanLocation = setGoingOffscreenNewLocation(potentialPacmanLocation);
+        potensiellpacmanPosisjon = setGaarUtAvSkjermNyposisjon(potensiellpacmanPosisjon);
 
-        if (direction.equals(lastDirection)) {
-            if (grid[(int) potentialPacmanLocation.getX()][(int) potentialPacmanLocation.getY()] == CellValue.WALL) {
-                pacmanVelocity = changeVelocity(Direction.NONE);
-                setLastDirection(Direction.NONE);
+        if (retning.equals(sisteRetning)) {
+
+            if (grid[(int) potensiellpacmanPosisjon.getX()][(int) potensiellpacmanPosisjon.getY()] == CelleVerdi.VEGG) {
+                pacmanFart = endreFart(Retning.INGEN);
+                setSisteRetning(Retning.INGEN);
             } else {
-                pacmanVelocity = potentialPacmanVelocity;
-                pacmanLocation = potentialPacmanLocation;
+                pacmanFart = potensiellPacmanFart;
+                pacmanPosisjon = potensiellpacmanPosisjon;
             }
         } else {
-            if (grid[(int) potentialPacmanLocation.getX()][(int) potentialPacmanLocation.getY()] == CellValue.WALL) {
-                potentialPacmanVelocity = changeVelocity(lastDirection);
-                potentialPacmanLocation = pacmanLocation.add(potentialPacmanVelocity);
-                if (grid[(int) potentialPacmanLocation.getX()][(int) potentialPacmanLocation.getY()] == CellValue.WALL) {
-                    pacmanVelocity = changeVelocity(Direction.NONE);
-                    setLastDirection(Direction.NONE);
+
+            if (grid[(int) potensiellpacmanPosisjon.getX()][(int) potensiellpacmanPosisjon.getY()] == CelleVerdi.VEGG) {
+                potensiellPacmanFart = endreFart(sisteRetning);
+                potensiellpacmanPosisjon = pacmanPosisjon.add(potensiellPacmanFart);
+
+                if (grid[(int) potensiellpacmanPosisjon.getX()][(int) potensiellpacmanPosisjon.getY()] == CelleVerdi.VEGG) {
+                    pacmanFart = endreFart(Retning.INGEN);
+                    setSisteRetning(Retning.INGEN);
                 } else {
-                    pacmanVelocity = changeVelocity(lastDirection);
-                    pacmanLocation = pacmanLocation.add(pacmanVelocity);
+                    pacmanFart = endreFart(sisteRetning);
+                    pacmanPosisjon = pacmanPosisjon.add(pacmanFart);
                 }
             } else {
-                pacmanVelocity = potentialPacmanVelocity;
-                pacmanLocation = potentialPacmanLocation;
-                setLastDirection(direction);
+                pacmanFart = potensiellPacmanFart;
+                pacmanPosisjon = potensiellpacmanPosisjon;
+                setSisteRetning(retning);
             }
         }
     }
 
-    public boolean isLevelComplete() {
-        return this.dotCount == 0;
+
+    /**
+     * @return Returen sjekker om priktelleren er 0. Om den er 0 er den 'true' og alle prikkene har blitt spist opp.
+     * Om 'false' vil spillet fortsette.
+     */
+    public boolean erNivaaFerdig() {
+        return this.prikkTeller == 0;
     }
 
-    public int getRowCount() {
-        return rowCount;
+    public int getRadTeller() {
+        return radTeller;
     }
 
-    public void setRowCount(int rowCount) {
-        this.rowCount = rowCount;
+    public void setRadTeller(int radTeller) {
+        this.radTeller = radTeller;
     }
 
-    public int getColumnCount() {
-        return columnCount;
+    public int getKolonneTeller() {
+        return kolonneTeller;
     }
 
-    public void setColumnCount(int columnCount) {
-        this.columnCount = columnCount;
+    public void setKolonneTeller(int kolonneTeller) {
+        this.kolonneTeller = kolonneTeller;
     }
 
-    public CellValue[][] getGrid() {
+    public CelleVerdi[][] getGrid() {
         return grid;
     }
 
-    public void setGrid(CellValue[][] grid) {
+    public void setGrid(CelleVerdi[][] grid) {
         this.grid = grid;
     }
 
@@ -442,24 +546,31 @@ public class PacmanModel {
         this.score = score;
     }
 
-    public static Direction getCurrentDirection() {
-        return currentDirection;
+
+    public static Retning getNaaverendeRetning() {
+        return naaverendeRetning;
     }
 
-    public int getLevel() {
-        return level;
+    public int getNivaa() {
+        return nivaa;
     }
 
-    public void setLevel(int level) {
-        this.level = level;
+    public void setNivaa(int nivaa) {
+        this.nivaa = nivaa;
     }
 
-    public int getDotCount() {
-        return dotCount;
+
+    /**
+     * Denne henter kor mange prikker som er igjen på brettet
+     *
+     * @return returnerer antall prikker som er igjen.
+     */
+    public int getPrikkTeller() {
+        return prikkTeller;
     }
 
-    public void setDotCount(int dotCount) {
-        this.dotCount = dotCount;
+    public void setPrikkTeller(int prikkTeller) {
+        this.prikkTeller = prikkTeller;
     }
 
     public static boolean isGameOver() {
@@ -470,101 +581,112 @@ public class PacmanModel {
         PacmanModel.gameOver = gameOver;
     }
 
-    public static boolean isYouWon() {
-        return youWon;
+    public static boolean erDuVant() {
+        return duVant;
     }
 
-    public static void setYouWon(boolean youWon) {
-        PacmanModel.youWon = youWon;
+    public static void setDuVant(boolean duVant) {
+        PacmanModel.duVant = duVant;
     }
 
-    public static boolean isGhostEating() {
-        return ghostEating;
+    public static boolean erSpoekelseSpiser() {
+        return spoekelseSpiseModus;
     }
 
-    public static void setGhostEating(boolean ghostEating) {
-        PacmanModel.ghostEating = ghostEating;
+    public static void setSpoekelseSpiser(boolean spoekelseSpiser) {
+        PacmanModel.spoekelseSpiseModus = spoekelseSpiser;
     }
 
-    public Point2D getPacmanLocation() {
-        return pacmanLocation;
+    public Point2D getPacmanPosisjon() {
+        return pacmanPosisjon;
     }
 
-    public void setPacmanLocation(Point2D pacmanLocation) {
-        this.pacmanLocation = pacmanLocation;
+    public void setpacmanPosisjon(Point2D pacmanPosisjon) {
+        this.pacmanPosisjon = pacmanPosisjon;
     }
 
-    public Point2D getPacmanVelocity() {
-        return pacmanVelocity;
+    public Point2D getPacmanFart() {
+        return pacmanFart;
     }
 
-    public void setPacmanVelocity(Point2D pacmanVelocity) {
-        this.pacmanVelocity = pacmanVelocity;
+    public void setPacmanFart(Point2D pacmanFart) {
+        this.pacmanFart = pacmanFart;
     }
 
-    public Point2D getGhost1Location() {
-        return ghost1Location;
+    public Point2D getSpoekelsePosisjon1() {
+        return spoekelseposisjon1;
     }
 
-    public void setGhost1Location(Point2D ghost1Location) {
-        this.ghost1Location = ghost1Location;
+    public void setSpoekelsePosisjon1(Point2D spoekelseposisjon1) {
+        this.spoekelseposisjon1 = spoekelseposisjon1;
     }
 
-    public Point2D getGhost1Velocity() {
-        return ghost1Velocity;
+    public Point2D getSpoekelseFart1() {
+        return spoekelseFart1;
     }
 
-    public void setGhost1Velocity(Point2D ghost1Velocity) {
-        this.ghost1Velocity = ghost1Velocity;
+    public void setSpoekelseFart1(Point2D spoekelseFart1) {
+        this.spoekelseFart1 = spoekelseFart1;
     }
 
-    public Point2D getGhost2Location() {
-        return ghost2Location;
+    public Point2D getSpoekelsePosisjon2() {
+        return spoekelseposisjon2;
     }
 
-    public void setGhost2Location(Point2D ghost2Location) {
-        this.ghost2Location = ghost2Location;
+    public void setSpoekelsePosisjon2(Point2D spoekelseposisjon2) {
+        this.spoekelseposisjon2 = spoekelseposisjon2;
     }
 
-    public Point2D getGhost2Velocity() {
-        return ghost2Velocity;
+    public Point2D getSpoekelseFart2() {
+        return spoekelseFart2;
     }
 
-    public void setGhost2Velocity(Point2D ghost2Velocity) {
-        this.ghost2Velocity = ghost2Velocity;
+    public void setSpoekelseFart2(Point2D spoekelseFart2) {
+        this.spoekelseFart2 = spoekelseFart2;
     }
 
-    public static Direction getLastDirection() {
-        return lastDirection;
-    }
-
-    public static void setLastDirection(Direction lastDirection) {
-        PacmanModel.lastDirection = lastDirection;
+    public static Retning getSisteRetning() {
+        return sisteRetning;
     }
 
 
-    public static void setCurrentDirection(Direction currentDirection) {
-        PacmanModel.currentDirection = currentDirection;
+    public static void setSisteRetning(Retning sisteRetning) {
+        PacmanModel.sisteRetning = sisteRetning;
     }
 
-    public CellValue getCellValue(int row, int column) {
-        assert row >= 0 && row < this.grid.length && column >= 0 && column < this.grid[0].length;
-        return this.grid[row][column];
+
+    public static void setNaaverendeRetning(Retning naaverendeRetning) {
+        PacmanModel.naaverendeRetning = naaverendeRetning;
     }
 
-    //public Point2D getPotentialLocation(Point2D velocity, Point2D location){
-    /*    Random generator = new Random();
-       Point2D potentialLocation = location.add(velocity);
-        potentialLocation = setGoingOffscreenNewLocation(potentialLocation);
-        while (grid[(int) potentialLocation.getX()][(int) potentialLocation.getY()] == CellValue.WALL) {
-            int randomNum = generator.nextInt(4);
-            Direction direction = intToDirection(randomNum);
-            velocity = changeVelocity(direction);
-            potentialLocation = location.add(velocity);
+    /**
+     * Denne sjekker om 'grid' har lovlige verdier. Om sjekken er 'true' vil den returnere grid-tabellen.
+     * Om den returnerer 'false' vil den returnere feilmeldinga.
+     * throw new IllegalArgumentException("Feil med celleverdien").
+     *
+     * @param rad
+     * @param kolonne
+     * @return Retur verdien er tabellen 'grid[rad][kolonne]'.
+     */
+    public CelleVerdi getCelleVerdi(int rad, int kolonne) {
+        boolean check;
+        check = (rad >= 0 && rad < this.grid.length && kolonne >= 0 && kolonne < this.grid[0].length);
+        if(check) {
+            return this.grid[rad][kolonne];
         }
-      return location = potentialLocation;
-    }*/
-    public void setPotentialLocation(Point2D velocity, Point2D location) {
-
+        else{
+            throw new IllegalArgumentException("Feil med celleverdien");
+        }
     }
+
+    /**
+     * @return Retur verdien er eit tilfeldig tall mellom ein til 4. Den vil bli brukt til å gi ny retning
+     *  til spøkelsene. Grunnen til 4 er fordi det er 4 retninger spøkelsene kan gå.
+     */
+    private Retning nyRetning() {
+        Random generator = new Random();
+        int random = generator.nextInt(4);
+        return intTilRetning(random);
+    }
+
 }

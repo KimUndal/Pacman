@@ -1,4 +1,14 @@
+/*
+ * Dette er Controller-klassa til Pacman-programmet.
+ * Denne klassa inneholder er metoden 'initialize()' som initierer hoveddelen av 'viewet'. Som veggene, Pacman, spøkelsene
+ * prikken osv.
+ * Metoden 'startTimer()' som henter retningen til Pacman og oppdaterer det spilleren ser. Den bruker ein 'background thread'
+ * med å bruke klassa 'TimerTask'.
+ * Og den siste metoden er 'handle(KeyEvent param1)' som håndterer tastebindinger for å styre Pacman,
+ * eller starte ett nytt spill.
+ * */
 package sample;
+
 
 import javafx.application.Platform;
 import javafx.event.EventHandler;
@@ -7,13 +17,12 @@ import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 
-import java.security.KeyException;
 import java.util.Timer;
 import java.util.TimerTask;
 
 public class Controller implements EventHandler<KeyEvent> {
     final private static double FPS = 5.0;
-    private PacmanModel pacmanModel;
+    private PacmanModel pacmanModell;
     @FXML
     private Label scoreLabel;
     @FXML
@@ -22,119 +31,143 @@ public class Controller implements EventHandler<KeyEvent> {
     private Label gameOverLabel;
     @FXML
     private PacmanView pacmanView;
-    private static final String[] levels = {"src/levels/level1.txt","src/levels/level2.txt","src/levels/level3.txt"};
+    private static final String[] nivaaFiler = {"src/levels/level1.txt", "src/levels/level2.txt", "src/levels/level3.txt"};
     private Timer timer;
-    private static int ghostEatingMode;
+    private static int spoekelseSpiseModus;
     private boolean pause;
 
-    public Controller(){
+    public Controller() {
         this.pause = false;
     }
 
-    public static void setGhostEatingCounter() {
-        ghostEatingMode = 25;
-    }
-
-    public void initialize(){
-        this.pacmanModel = new PacmanModel();
-        this.update(PacmanModel.Direction.NONE);
-        ghostEatingMode = 25;
+    /**
+     * Denne metoden starter spillet. Den lager ein ny Pacman modell, den gir startrettning 'INGEN',
+     * setter spoekelseSpiseModus til 25,
+     * og henter metoden 'startTimer()' som starter bakgrunns tråden som flytter på bildene.
+     */
+    public void initialize() {
+        this.pacmanModell = new PacmanModel();
+        this.update(PacmanModel.Retning.INGEN);
+        spoekelseSpiseModus = 25;
         this.startTimer();
     }
 
-    private void startTimer(){
+    /**
+     * Denne metoden bruker ein tråd som den henter med å initiere klassa 'TimerTask'.
+     * Tråden kjører metoden 'oppdater(PacmanModel param1)'.
+     * Deretter gjør den om int til long og henter metoden 'schedule(TimerTask param1, long param2, long param2)'.
+     * Det denne metoden gjør er å repetere den oppgava som skal bli gjort i form av.
+     * Param1, navnet på oppgava.
+     * Param2, den skal sette ein forsinkelse i oppgava.
+     * param3, den skal starte oppgava etter forsinkelsen.
+     */
+    private void startTimer() {
         this.timer = new java.util.Timer();
         TimerTask timerTask = new TimerTask() {
             @Override
             public void run() {
-                Platform.runLater(() -> update(PacmanModel.getCurrentDirection()));
+                Platform.runLater(() -> update(PacmanModel.getNaaverendeRetning()));
             }
         };
-        long frameTimeInMill = (long) (1000.0/FPS);
+        long frameTimeInMill = (long) (1000.0 / FPS);
         this.timer.schedule(timerTask, 0, frameTimeInMill);
+
     }
 
-    private void update(PacmanModel.Direction direction){
-        this.pacmanModel.step(direction);
-        this.pacmanView.update(pacmanModel);
-        this.scoreLabel.setText(String.format("Score: %d", this.pacmanModel.getScore()));
-        this.levelLabel.setText(String.format("Level: %d", this.pacmanModel.getLevel()));
-        if(PacmanModel.isGameOver()){
+    /*
+     * Denne metoden oppdaterer viewet til programmet.
+     * I form av oppdatere poengscoren, vise nivået, game over tekst, du vant, osv.
+     *
+     * */
+
+    private void update(PacmanModel.Retning retning) {
+        this.pacmanModell.steg(retning);
+        this.pacmanView.oppdater(pacmanModell);
+        this.scoreLabel.setText(String.format("Score: %d", this.pacmanModell.getScore()));
+        this.levelLabel.setText(String.format("Level: %d", this.pacmanModell.getNivaa()));
+        if (PacmanModel.isGameOver()) {
             this.gameOverLabel.setText("GAME OVER");
             pause();
         }
-        if(PacmanModel.isYouWon()){
-            this.gameOverLabel.setText("YOU WON");
+        if (PacmanModel.erDuVant()) {
+            this.gameOverLabel.setText("DU VANT!");
         }
-        if(PacmanModel.isGhostEating()){
-            ghostEatingMode--;
+        if (PacmanModel.erSpoekelseSpiser()) {
+            spoekelseSpiseModus--;
         }
-        if(ghostEatingMode == 0 && PacmanModel.isGhostEating()){
-            PacmanModel.setGhostEating(false);
+        if (spoekelseSpiseModus == 0 && PacmanModel.erSpoekelseSpiser()) {
+            PacmanModel.setSpoekelseSpiser(false);
         }
     }
 
+    /*
+     * Denne metoden tar seg av tastetrykkene som blir registrert av programmet.
+     * Den sjekker mot tastetrykk om den er lovlig til å styre Pacman og viser deretter retning til Pacman.
+     * Den sjekker også mot nytt spill.
+     *
+     * */
     @Override
-    public void handle(KeyEvent keyEvent){
-        boolean keyRecognised = true;
+    public void handle(KeyEvent keyEvent) {
+        boolean kjennIgjenTasteTrykk = true;
         KeyCode keyCode = keyEvent.getCode();
-        PacmanModel.Direction direction = PacmanModel.Direction.NONE;
-        if(keyCode == KeyCode.LEFT){
-            direction = PacmanModel.Direction.LEFT;
-        }
-        else if(keyCode == KeyCode.RIGHT){
-            direction = PacmanModel.Direction.RIGHT;
-        }
-        else if(keyCode == KeyCode.UP){
-            direction = PacmanModel.Direction.UP;
-        }
-        else if(keyCode == KeyCode.DOWN){
-            direction = PacmanModel.Direction.DOWN;
-        }
-        else if(keyCode == KeyCode.G){
+        PacmanModel.Retning retning = PacmanModel.Retning.INGEN;
+        if (keyCode == KeyCode.LEFT) {
+            retning = PacmanModel.Retning.VENSTRE;
+        } else if (keyCode == KeyCode.RIGHT) {
+            retning = PacmanModel.Retning.HOEGRE;
+        } else if (keyCode == KeyCode.UP) {
+            retning = PacmanModel.Retning.OPP;
+        } else if (keyCode == KeyCode.DOWN) {
+            retning = PacmanModel.Retning.NED;
+        } else if (keyCode == KeyCode.G) {
             pause();
-            this.pacmanModel.startNewGame();
+            this.pacmanModell.startNyttSpill();
             this.gameOverLabel.setText("");
             pause = false;
             this.startTimer();
-        }else{
-            keyRecognised = false;
+        } else {
+            kjennIgjenTasteTrykk = false;
         }
-        if(keyRecognised){
+        if (kjennIgjenTasteTrykk) {
             keyEvent.consume();
-            PacmanModel.setCurrentDirection(direction);
+            PacmanModel.setNaaverendeRetning(retning);
         }
     }
 
-    public static int getGhostEatingMode() {
-        return ghostEatingMode;
+    public static int getSpoekelseSpiseModus() {
+        return spoekelseSpiseModus;
     }
 
-    public static String getLevelFile(int level){
-        return levels[level];
+    public static String getNivaaFil(int nivaa) {
+        return nivaaFiler[nivaa];
     }
-    public void pause(){
+
+    public void pause() {
         this.timer.cancel();
         this.pause = true;
     }
 
-    public double getBoardWidth(){
-        return PacmanView.CELL_WIDTH * pacmanView.getColumnCount();
+    public double getBoardWidth() {
+        return PacmanView.CELLE_BREDDE * pacmanView.getKolonneTeller();
     }
 
-    public double getBoardHeight(){
-        return PacmanView.CELL_WIDTH * pacmanView.getRowCount();
+    public double getBoardHeight() {
+        return PacmanView.CELLE_BREDDE * pacmanView.getRadTeller();
     }
 
-    public static void setGhostEatingMode(){
-        ghostEatingMode = 25;
+    public static void setSpoekelseSpiseModus() {
+        spoekelseSpiseModus = 25;
     }
 
-    public static int getGhostEatingModeCounter(){
-        return ghostEatingMode;
+    public static int getSpoekelseSpiseModusTeller() {
+        return spoekelseSpiseModus;
     }
 
-    public boolean getPaused(){
+    public static void setSpoekelseSpiserTeller() {
+        spoekelseSpiseModus = 25;
+    }
+
+    public boolean getPaused() {
         return pause;
     }
 }
