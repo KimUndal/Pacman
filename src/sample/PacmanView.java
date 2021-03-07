@@ -75,7 +75,8 @@ public class PacmanView extends Group {
      * Denne metoden oppdaterer bildet av Pacman.
      * Dette skal bli vist etter at spilleren har byttet retning på Pacman.
      *
-     * @param modell
+     * @param modell denne blir brukt til å hente to metoder, 'getRadTeller()' og 'getKolonneTeller()'
+     *              og hente X, Y koordinatene til å finne ut ka slags bild eosm skal bli vist basert på koordinatane
      */
     public void oppdater(PacmanModel modell) {
         assert modell.getRadTeller() == this.radTeller && modell.getKolonneTeller() == this.kolonneTeller;
@@ -143,7 +144,7 @@ public class PacmanView extends Group {
      * Denne metoden oppdaterer kor spøkelsene skal vere på skjermen.
      * Den sjekker mot spøkelset X, Y koordinater mot rad og kolonne, for å vite kor spøkelse skal vere.
      *
-     * @param modell  - spøkelse sine koordinater
+     * @param modell - Denne gir X, Y koordinatene til spøkelsene
      * @param rad
      * @param kolonne
      */

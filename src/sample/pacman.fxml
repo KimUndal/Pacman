@@ -1,10 +1,8 @@
-
-<?import javafx.scene.layout.AnchorPane?><?import sample.PacmanView?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.BorderPane?>
-<?import javafx.scene.layout.VBox?>
 <?import sample.PacmanView?>
+
 <BorderPane fx:controller="sample.Controller" style="-fx-background-color: black;" xmlns:fx="http://javafx.com/fxml">
     <top>
         <BorderPane prefHeight="35" style="-fx-background-color: #0B5091; -fx-padding: 10px, 5px, 10px, 5px" >
@@ -19,9 +17,9 @@
     </center>
 
     <bottom>
-        <HBox prefHeight="35" style="-fx-padding: 10px, 5px, 10px, 5px; -fx-background-color: #F3B61D">
+        <HBox prefHeight="35" style="-fx-padding: 10px, 5px, 10px, 5px; -fx-background-color: #0d3704">
             <Label style="-fx-font-size: 140%; -fx-text-fill: white"
-                   text="Move: arrow keys / New game: G" />
+                   text="Styre: Piltastene / Nytt spill: N" />
         </HBox>
     </bottom>
 </BorderPane>

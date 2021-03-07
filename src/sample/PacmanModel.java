@@ -58,6 +58,9 @@ public class PacmanModel {
     private static Retning sisteRetning;
     private static Retning naaverendeRetning;
 
+    /**
+     * Denne konstruktøren vil starte spillet.
+     */
     public PacmanModel() {
         this.startNyttSpill();
     }
@@ -217,8 +220,8 @@ public class PacmanModel {
      * Denne sjekken vil heile tida pågå under kjøringa av programmet.
      * Om den ikkje har truffet ein vegg vil koordinatane bli gitt til 'posisjon'.
      *
-     * @param fart
-     * @param posisjon
+     * @param fart - Dette er retninga som den vil gå mot.
+     * @param posisjon - Dette er kor den er plassert på brettet.
      * @return Retur verdien er ein tabell som gir fart og posisjon etter at den har sjekket om den har truffet ein vegg.
      */
     public Point2D[] bevegEttSpoekelse(Point2D fart, Point2D posisjon) {
@@ -311,10 +314,11 @@ public class PacmanModel {
     /**
      * sjekker om objektet går utafor brettet. Om sant vil objektet bli hentet inn igjen.
      *
-     * @param nyposisjon
-     * @return Returverdien er posisjonen til den andre sida av brettet.
+     * @param posisjon - Dette er den gamle posisjonen
+     * @return Returverdien er den nye posisjonen. Den vil sende objektet til den andre sida av brettet.
      */
-    public Point2D setGaarUtAvSkjermNyposisjon(Point2D nyposisjon) {
+    public Point2D setGaarUtAvSkjermNyposisjon(Point2D posisjon) {
+        Point2D nyposisjon = posisjon;
         //om objektet går utafor brettet på høgre side
         if (nyposisjon.getY() >= kolonneTeller) {
             nyposisjon = new Point2D(nyposisjon.getX(), 0);
@@ -331,7 +335,7 @@ public class PacmanModel {
      * Denne metoden bruker ein 'enhanced switch' metode som bruker lambdautrykk. Denne gir ny retning til Point2D objektet.
      * Samtidig gjør den om enumet 'Retning' og verdiane inni der til koordinater.
      *
-     * @param retning
+     * @param retning - Dette er fra Enum Retning.
      * @return bytter retning på enten spøkelse eller pacman.
      */
     public Point2D endreFart(Retning retning) {
@@ -348,7 +352,7 @@ public class PacmanModel {
      * Denne metoden henter inn enumet 'Retning' og gir ny retning basert på tall. Om tallet skulle være utenfor rekkevidda
      * vil den kaste 'IllegalStateException'.
      *
-     * @param tall
+     * @param tall - Tallet som kjem inn er tilfeldig. Det skal alltid vere mellom 0-3.
      * @return returnerer retning basert på kva slags tall som kom inn.
      */
     public Retning intTilRetning(int tall) {
@@ -398,7 +402,7 @@ public class PacmanModel {
      * Om den har det henter den inn den inn metoden 'sendSpoekelseHjem()' og får ekstra poeng.
      * Den sjekker også om nivået er ferdig. Om den er det henter den inn metoden 'startNesteNivaa()' .
      *
-     * @param retning
+     * @param retning - Dette er retning som kommer fra spilleren
      */
     public void steg(Retning retning) {
         this.bevegPacman(retning);
@@ -467,7 +471,7 @@ public class PacmanModel {
      * Deretter vil den heile tida sjekke om 'retning' treffer ein vegg. Om den gjør det skal Pacman sin fart vere 'INGEN'.
      * Eller skal den tenkte fart og posisjon bli den endelige posisjonen.
      *
-     * @param retning
+     * @param retning - Dette er retning som seier kor Pacman skal gå.
      */
     public void bevegPacman(Retning retning) {
         Point2D potensiellPacmanFart = endreFart(retning);
@@ -664,8 +668,8 @@ public class PacmanModel {
      * Om den returnerer 'false' vil den returnere feilmeldinga.
      * throw new IllegalArgumentException("Feil med celleverdien").
      *
-     * @param rad
-     * @param kolonne
+     * @param rad - Tallet som kjem inn bør vere større enn 0.
+     * @param kolonne - Tallet som kjem inn bør vere større enn 0.
      * @return Retur verdien er tabellen 'grid[rad][kolonne]'.
      */
     public CelleVerdi getCelleVerdi(int rad, int kolonne) {

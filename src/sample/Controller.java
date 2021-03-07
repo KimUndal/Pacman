@@ -80,6 +80,14 @@ public class Controller implements EventHandler<KeyEvent> {
      *
      * */
 
+    /**
+     * Denne metoden oppdaterer viewet til programmet.
+     * I form av oppdatere poengscoren, vise nivået, game over tekst, du vant, osv.
+     *
+     * @param retning - Denne metoden baserer seg på ka slags retning Pacman går. Den vil oppdatere score og nivå.
+     *                Også vil den oppdatere ka slags bildet av Pacman som skal bli vist basert på om retningen er mot
+     *                vest, øst, nord eller sør.
+     */
     private void update(PacmanModel.Retning retning) {
         this.pacmanModell.steg(retning);
         this.pacmanView.oppdater(pacmanModell);
@@ -100,12 +108,14 @@ public class Controller implements EventHandler<KeyEvent> {
         }
     }
 
-    /*
+    /**
      * Denne metoden tar seg av tastetrykkene som blir registrert av programmet.
      * Den sjekker mot tastetrykk om den er lovlig til å styre Pacman og viser deretter retning til Pacman.
      * Den sjekker også mot nytt spill.
      *
-     * */
+     * @param keyEvent - Dette er keypressed down som kjem inn.
+     */
+
     @Override
     public void handle(KeyEvent keyEvent) {
         boolean kjennIgjenTasteTrykk = true;
@@ -119,7 +129,7 @@ public class Controller implements EventHandler<KeyEvent> {
             retning = PacmanModel.Retning.OPP;
         } else if (keyCode == KeyCode.DOWN) {
             retning = PacmanModel.Retning.NED;
-        } else if (keyCode == KeyCode.G) {
+        } else if (keyCode == KeyCode.N) {
             pause();
             this.pacmanModell.startNyttSpill();
             this.gameOverLabel.setText("");
@@ -142,6 +152,9 @@ public class Controller implements EventHandler<KeyEvent> {
         return nivaaFiler[nivaa];
     }
 
+    /**
+     * Denne vil stoppe spele
+     */
     public void pause() {
         this.timer.cancel();
         this.pause = true;
